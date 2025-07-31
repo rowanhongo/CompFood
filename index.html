@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comp Food - Global Food Price Explorer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- AI Chat Panel -->
+        <div class="chat-panel">
+            <div class="chat-header">
+                <h2>Food AI Assistant</h2>
+                <p>Ask me about food, nutrition, or cooking!</p>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message ai-message">
+                    <strong>AI:</strong> Hi! I'm here to help you with food-related questions. Ask me about nutrition, cooking tips, food prices, or anything food-related!
+                </div>
+            </div>
+            <div class="chat-input-container">
+                <input type="text" id="chatInput" class="chat-input" placeholder="Ask about food..." onkeypress="if(event.key==='Enter') sendMessage()">
+                <button class="chat-send-btn" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+
+        <!-- Main Panel -->
+        <div class="main-panel">
+            <div class="header">
+                <h1>Comp Food</h1>
+                <p>Compare food prices globally - Perfect for students studying abroad!</p>
+            </div>
+
+            <div class="search-section">
+                <div class="search-container">
+                    <input type="text" id="foodSearch" class="search-input" placeholder="Enter food item (e.g., milk, rice, chicken)">
+                    <button class="search-btn" onclick="searchFoodPrices()">Search Prices</button>
+                </div>
+                <div class="filters">
+                    <select class="filter-select" id="continentFilter">
+                        <option value="">All Continents</option>
+                        <option value="asia">Asia</option>
+                        <option value="europe">Europe</option>
+                        <option value="north-america">North America</option>
+                        <option value="south-america">South America</option>
+                        <option value="africa">Africa</option>
+                        <option value="oceania">Oceania</option>
+                    </select>
+                    <select class="filter-select" id="currencyFilter">
+                        <option value="">All Currencies</option>
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                        <option value="JPY">JPY</option>
+                        <option value="CNY">CNY</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="results-section">
+                <div id="resultsContainer">
+                    <div class="welcome-message">
+                        <h3>Welcome to Comp Food!</h3>
+                        <p>Search for any food item above to compare prices across different countries. Perfect for students planning their study abroad budget!</p>
+                        <br>
+                        <p><strong>Try searching for:</strong> milk, bread, rice, chicken, eggs, coffee, or any food item</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
