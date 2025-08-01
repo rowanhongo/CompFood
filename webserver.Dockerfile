@@ -1,6 +1,6 @@
 FROM nginx:alpine
 
-COPY CompFood/ /usr/share/nginx/html/
+COPY CompFood/public /usr/share/nginx/html/
 
 RUN echo '<html><body><h1>Server is healthy!</h1></body></html>' > /usr/share/nginx/html/health.html
 
