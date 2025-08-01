@@ -1,4 +1,99 @@
-# Comp Food - Global Food Price Comparison App
+# CompFood - Load Balanced Website
+
+A Docker-based load-balanced deployment of the CompFood website with HAProxy load balancer.
+
+## Quick Start
+
+1. Start the services:
+   ```bash
+   docker-compose up --build -d
+   ```
+
+2. Access your website:
+   - Main site: http://localhost:8080
+
+3. Stop the services:
+   ```bash
+   docker-compose down
+   ```
+
+## Architecture
+
+- 2 Web Servers (Nginx) serving your static files
+- 1 HAProxy Load Balancer distributing traffic
+- Custom Docker Network for secure communication
+
+## Features
+
+- Round-robin load balancing
+- Health checks and automatic failover
+- Response headers showing which server handled the request
+- Easy scaling and management
+
+## Files
+
+- `docker-compose.yml` - Main orchestration file
+- `webserver.Dockerfile` - Web server container definition
+- `haproxy/haproxy.cfg` - Load balancer configuration
+- `CompFood/` - Your website files (HTML, CSS, JS)
+
+ Step-by-Step Deployment Guide
+
+### Step 1: Verify Your Project Structure
+
+Ensure your project has the following structure:
+```
+your-project/
+├── CompFood/
+│   ├── index.html
+│   ├── styles.css
+│   ├── script.js
+│   └── ... (other website files)
+├── haproxy/
+│   └── haproxy.cfg
+├── webserver.Dockerfile
+├── docker-compose.yml
+└── deploy-guide.md
+```
+
+### Step 2: Build and Start the Services
+
+1. Open a terminal/command prompt in your project directory
+
+2. Build and start all services:
+   ```bash
+   docker-compose up --build -d
+   ```
+
+   This command will:
+   - Build the web server images
+   - Create a custom Docker network
+   - Start 2 web servers and 1 HAProxy load balancer
+   - Run everything in detached mode (-d flag)
+
+### Step 3: Verify the Deployment
+
+1. Check if all containers are running:
+   ```bash
+   docker-compose ps
+   ```
+
+   You should see 3 containers running:
+   - `haproxy-lb` (load balancer)
+   - `web-server-01` (web server 1)
+   - `web-server-02` (web server 2)
+
+2. Check container logs:
+   ```bash
+   docker-compose logs
+   ```
+
+3. Access your website:
+   - Open your web browser
+   - Go to `http://localhost`
+   - Your website should load with load balancing
+
+ How to run Comp Food - Global Food Price Comparison App locally
 
 A web application for comparing food prices globally, perfect for students studying abroad. Built with Node.js, Express, and free APIs.
 
@@ -84,113 +179,6 @@ node server.js
 
 Open your browser and go to:
 ```
-http://localhost:3001
-```
+http://localhost:3005
 
-## How It Works
-
-### Free APIs Used
-
-1. **World Bank Data API** (FREE - No API key needed)
-   - Provides Consumer Price Index data for food prices
-   - Covers 15+ countries including African nations
-   - 1000 requests per hour limit
-
-2. **FAO (Food and Agriculture Organization)** (FREE - No API key needed)
-   - UN organization data for developing countries
-   - Specialized in African and developing nation food prices
-   - Real data from local markets
-
-3. **Google Gemini AI** (FREE tier available)
-   - Powers the chat assistant
-   - Provides nutrition and cooking advice
-   - Free tier includes generous usage limits
-
-### Supported Countries
-
-- **North America:** United States, Canada
-- **Europe:** United Kingdom, France, Germany
-- **Asia:** Japan, Singapore, India
-- **Africa:** South Africa, Nigeria, Egypt, Kenya, Ghana, Ethiopia
-- **Oceania:** Australia
-
-## Usage
-
-1. **Search Food Prices:**
-   - Enter a food item (e.g., "milk", "rice", "bread")
-   - Click "Search Prices"
-   - View prices across different countries
-   - Filter by continent or currency
-
-2. **Chat with AI Assistant:**
-   - Ask questions about nutrition, cooking, or food
-   - Get personalized advice and tips
-   - Perfect for meal planning and budgeting
-
-3. **Filter Results:**
-   - Use continent filter to focus on specific regions
-   - Use currency filter to compare in your preferred currency
-
-## File Structure
-
-```
-CompFood/
-├── .env                    # Your API keys (create this)
-├── server.js              # Node.js backend server
-├── index.html             # Main HTML file
-├── script.js              # Frontend JavaScript
-├── styles.css             # CSS styles
-├── config.js              # Frontend configuration
-├── package.json           # Node.js dependencies
-└── node_modules/          # Installed packages
-```
-
-## Troubleshooting
-
-### Port Already in Use
-If you get "address already in use" error:
-```bash
-# Change port in server.js
-const PORT = process.env.PORT || 3002;  # Change 3001 to 3002
-```
-
-### API Key Issues
-- Make sure your `.env` file is in the project root
-- Check that API keys are correct (no extra spaces)
-- Verify Gemini API key is active in Google AI Studio
-
-### No Food Prices Showing
-- The app uses free APIs that may be slow
-- Try different food items (milk, bread, rice work best)
-- Check browser console for error messages
-
-## Technologies Used
-
-- **Backend:** Node.js, Express.js
-- **Frontend:** HTML5, CSS3, JavaScript (ES6+)
-- **APIs:** World Bank Data API, FAO API, Google Gemini AI
-- **Styling:** Custom CSS (student-friendly design)
-
-## Contributing
-
-This is a student project. Feel free to:
-- Add more countries
-- Improve the UI/UX
-- Add new food price APIs
-- Enhance the AI chat functionality
-
-## License
-
-MIT License - Feel free to use this project for educational purposes.
-
-## Support
-
-For issues or questions:
-1. Check the troubleshooting section above
-2. Verify your API keys are correct
-3. Make sure all dependencies are installed
-4. Check that Node.js version is 14 or higher
-
----
-
-**Built for students, by students! 
+**Built for students, by students!

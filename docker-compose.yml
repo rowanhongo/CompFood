@@ -1,0 +1,44 @@
+services:
+  haproxy:
+    image: haproxy:2.8
+    container_name: haproxy-lb
+    ports:
+      - "8080:80"
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    networks:
+      - web-network
+    depends_on:
+      - web-01
+      - web-02
+    restart: unless-stopped
+
+  web-01:
+    build:
+      context: .
+      dockerfile: webserver.Dockerfile
+    container_name: web-server-01
+    volumes:
+      - ./CompFood:/var/www/html
+    networks:
+      - web-network
+    restart: unless-stopped
+    environment:
+      - SERVER_NAME=web-01
+
+  web-02:
+    build:
+      context: .
+      dockerfile: webserver.Dockerfile
+    container_name: web-server-02
+    volumes:
+      - ./CompFood:/var/www/html
+    networks:
+      - web-network
+    restart: unless-stopped
+    environment:
+      - SERVER_NAME=web-02
+
+networks:
+  web-network:
+    driver: bridge 

@@ -12,56 +12,10 @@ function searchFoodPrices() {
 
     showLoading();
     
-    // Use real API for food prices
-    searchWithRapidAPI(searchTerm, continentFilter, currencyFilter);
+    // Call the World Bank API function
+    searchWithWorldBankAPI(searchTerm, continentFilter, currencyFilter);
 }
 
-// rapidapi integration
-async function searchWithRapidAPI(searchTerm, continentFilter, currencyFilter) {
-    try {
-        // try World Bank API first (free!)
-        await searchWithWorldBankAPI(searchTerm, continentFilter, currencyFilter);
-    } catch (error) {
-        console.error('World Bank API error:', error);
-        
-        // backup to RapidAPI if needed
-        try {
-            const apiKey = await getApiKey('RAPIDAPI_KEY');
-            if (!apiKey) {
-                throw new Error('rapidapi key missing');
-            }
-            
-            const response = await fetch(API_CONFIG.FOOD_PRICES_API_URL, {
-                method: 'GET',
-                headers: {
-                    'X-RapidAPI-Key': apiKey,
-                    'X-RapidAPI-Host': 'world-food-prices-api.rapidapi.com'
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`Food prices API request failed: ${response.status}`);
-            }
-            
-            let data = await response.json();
-            
-            // Apply filters
-            if (continentFilter) {
-                data = data.filter(item => item.continent === continentFilter);
-            }
-            
-            if (currencyFilter) {
-                data = data.filter(item => item.currency === currencyFilter);
-            }
-            
-            displayResults(data, searchTerm);
-            
-        } catch (rapidError) {
-            console.error('RapidAPI error:', rapidError);
-            showError(`Failed to fetch food prices from both APIs: ${error.message}`);
-        }
-    }
-}
 
 // World Bank API function - free food price data
 async function searchWithWorldBankAPI(searchTerm, continentFilter, currencyFilter) {
@@ -119,7 +73,7 @@ async function getWorldBankFoodData(searchTerm) {
             let price = null;
             let source = '';
             
-            // try FAO first for african countries
+            //  FAO first for african countries
             if (country.continent === 'africa') {
                 try {
                     const faoData = await getFAOFoodData(country.code, searchTerm);
@@ -169,16 +123,8 @@ async function getWorldBankFoodData(searchTerm) {
     return results;
 }
 
-// helper to get base prices for different foods
-function getBasePrice(foodItem) {
-    const searchLower = foodItem.toLowerCase();
-    if (searchLower.includes('milk')) return 2.50;
-    if (searchLower.includes('bread')) return 1.80;
-    if (searchLower.includes('rice')) return 1.20;
-    if (searchLower.includes('chicken')) return 4.50;
-    if (searchLower.includes('egg')) return 3.00;
-    return 2.00; // default
-}
+
+
 
 // get FAO food data for african countries
 async function getFAOFoodData(countryCode, searchTerm) {
@@ -203,54 +149,7 @@ async function getFAOFoodData(countryCode, searchTerm) {
         console.log('FAO API error:', error);
     }
     
-    // fallback: simulate FAO data for african countries
-    return getSimulatedFAOData(countryCode, searchTerm);
-}
-
-// simulate FAO data for african countries (since real API might be slow)
-function getSimulatedFAOData(countryCode, searchTerm) {
-    const basePrice = getBasePrice(searchTerm);
-    
-    // african countries typically have lower prices
-    const africanMultiplier = 0.6; // 40% cheaper than global average
-    
-    // country-specific adjustments
-    const countryAdjustments = {
-        'ZA': 1.2,  // South Africa - more expensive
-        'NG': 0.8,  // Nigeria - moderate
-        'EG': 0.7,  // Egypt - cheaper
-        'KE': 0.6,  // Kenya - cheaper
-        'GH': 0.7,  // Ghana - moderate
-        'ET': 0.5   // Ethiopia - cheapest
-    };
-    
-    const multiplier = africanMultiplier * (countryAdjustments[countryCode] || 0.7);
-    const price = (basePrice * multiplier).toFixed(2);
-    
-    return {
-        price: price,
-        currency: 'USD' // FAO usually reports in USD
-    };
-}
-
-function generateMockData(foodItem) {
-    const countries = [
-        { name: "United States", currency: "USD", continent: "north-america" },
-        { name: "Germany", currency: "EUR", continent: "europe" },
-        { name: "Japan", currency: "JPY", continent: "asia" },
-        { name: "Australia", currency: "AUD", continent: "oceania" },
-        { name: "Canada", currency: "CAD", continent: "north-america" },
-        { name: "United Kingdom", currency: "GBP", continent: "europe" },
-        { name: "France", currency: "EUR", continent: "europe" },
-        { name: "Brazil", currency: "BRL", continent: "south-america" }
-    ];
-    
-    return countries.map(country => ({
-        country: country.name,
-        price: (Math.random() * 10 + 1).toFixed(2),
-        currency: country.currency,
-        continent: country.continent
-    }));
+   
 }
 
 function showLoading() {
@@ -338,79 +237,14 @@ async function sendMessage() {
         addMessage(fallbackResponse, 'ai');
     }
 }
-
-// smart responses for food questions
-function getIntelligentResponse(message) {
-    const lowerMessage = message.toLowerCase();
-    
-    // Nutrition questions
-    if (lowerMessage.includes('protein')) {
-        return "Great sources of protein include chicken, fish, eggs, beans, lentils, tofu, and Greek yogurt. Aim for about 0.8g per kg of body weight daily for general health.";
-    }
-    
-    if (lowerMessage.includes('vitamin') || lowerMessage.includes('nutrients')) {
-        return "Key vitamins from food: Vitamin C (citrus, berries), Vitamin D (fatty fish, fortified milk), B vitamins (whole grains, leafy greens), and Vitamin A (carrots, sweet potatoes). Eat a rainbow of colors!";
-    }
-    
-    if (lowerMessage.includes('healthy') || lowerMessage.includes('diet')) {
-        return "A balanced diet includes fruits, vegetables, whole grains, lean proteins, and healthy fats. Stay hydrated, limit processed foods, and remember: moderation is key!";
-    }
-    
-    if (lowerMessage.includes('calcium')) {
-        return "Best calcium sources: dairy products, leafy greens (kale, bok choy), almonds, sardines, and fortified plant milks. Your bones will thank you!";
-    }
-    
-    // Cooking questions
-    if (lowerMessage.includes('cook') || lowerMessage.includes('recipe')) {
-        return "Basic cooking tips: Use fresh ingredients, taste as you go, don't rush the process, and keep your knives sharp. Start with simple recipes like stir-fries or pasta dishes!";
-    }
-    
-    if (lowerMessage.includes('spice') || lowerMessage.includes('season')) {
-        return "Essential spices for beginners: salt, pepper, garlic powder, paprika, cumin, and herbs like basil or oregano. Build your spice collection gradually and experiment!";
-    }
-    
-    // Budget and price questions
-    if (lowerMessage.includes('cheap') || lowerMessage.includes('budget') || lowerMessage.includes('affordable')) {
-        return "Budget-friendly foods: rice, beans, lentils, eggs, seasonal vegetables, and buying in bulk. Shop at local markets for better prices and plan your meals ahead!";
-    }
-    
-    if (lowerMessage.includes('expensive') || lowerMessage.includes('cost')) {
-        return "Most expensive foods tend to be: imported items, out-of-season produce, specialty meats, and processed convenience foods. Cook at home to save money!";
-    }
-    
-    if (lowerMessage.includes('student')) {
-        return "Student food tips: Buy staples in bulk, learn basic cooking skills, use campus meal plans wisely, share costs with roommates, and always have ramen as backup! 🍜";
-    }
-    
-    // Food safety
-    if (lowerMessage.includes('safe') || lowerMessage.includes('storage')) {
-        return "Food safety basics: Keep cold foods cold (below 40°F), wash hands and surfaces often, don't leave perishables out for more than 2 hours, and when in doubt, throw it out!";
-    }
-    
-    // Weight management
-    if (lowerMessage.includes('weight') || lowerMessage.includes('lose') || lowerMessage.includes('gain')) {
-        return "For healthy weight management: focus on whole foods, control portions, stay hydrated, and combine good nutrition with regular physical activity. Consult a healthcare provider for personalized advice.";
-    }
-    
-    // Specific food questions
-    if (lowerMessage.includes('milk') || lowerMessage.includes('dairy')) {
-        return "Milk provides calcium, protein, and vitamins. If lactose intolerant, try lactose-free milk or plant alternatives like almond, oat, or soy milk. Each has different nutritional profiles!";
-    }
-    
-    if (lowerMessage.includes('rice')) {
-        return "Rice is a versatile staple! Brown rice has more fiber and nutrients than white rice. It's filling, affordable, and pairs well with almost any protein and vegetables.";
-    }
-    
+  
     // Default responses for general questions
     const generalResponses = [
-        "That's an interesting food question! While I'd love to give you more specific information, I can help with general nutrition, cooking tips, and food budgeting advice.",
-        "Great question about food! For the most accurate information, I'd recommend consulting with a nutritionist, but I'm happy to share general food knowledge.",
-        "Food is such a fascinating topic! Is there something specific about nutrition, cooking, or food prices you'd like to know more about?",
-        "I love talking about food! Whether it's about healthy eating, budget cooking, or food safety, I'm here to help with general guidance."
+        "That's an interesting food question! I'm not sure I can answer that, but I can help you find food prices in different countries."
     ];
     
     return generalResponses[Math.floor(Math.random() * generalResponses.length)];
-}
+
 
 // gemini api call
 async function callGeminiAPI(message) {
@@ -485,7 +319,8 @@ function isDevelopment() {
     return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 }
 
-// API config - using free World Bank API + FAO
+
+// API config 
 const API_CONFIG = {
     GEMINI_API_URL: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent',
     WORLD_BANK_API: 'https://api.worldbank.org/v2/country',
