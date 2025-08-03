@@ -1,4 +1,3 @@
-
 // search for food prices
 function searchFoodPrices() {
     const searchTerm = document.getElementById('foodSearch').value.toLowerCase().trim();
@@ -12,48 +11,71 @@ function searchFoodPrices() {
 
     showLoading();
     
-    // Call the World Bank API function
-    searchWithWorldBankAPI(searchTerm, continentFilter, currencyFilter);
+    // Call the backend proxy
+    searchWithBackendProxy(searchTerm, continentFilter, currencyFilter);
 }
 
-
-// World Bank API function - free food price data
-async function searchWithWorldBankAPI(searchTerm, continentFilter, currencyFilter) {
-    const foodPrices = await getWorldBankFoodData(searchTerm);
-    
-    // apply filters
-    let filteredResults = foodPrices;
-    if (continentFilter) {
-        filteredResults = filteredResults.filter(item => item.continent === continentFilter);
-    }
-    if (currencyFilter) {
-        filteredResults = filteredResults.filter(item => item.currency === currencyFilter);
-    }
-    
-    if (filteredResults.length === 0) {
-        showError(`No food prices found for "${searchTerm}" in the selected regions.`);
-    } else {
-        displayResults(filteredResults, searchTerm);
+// Backend proxy function for food prices
+async function searchWithBackendProxy(searchTerm, continentFilter, currencyFilter) {
+    try {
+        const queryParams = new URLSearchParams();
+        if (continentFilter) queryParams.append('continent', continentFilter);
+        if (currencyFilter) queryParams.append('currency', currencyFilter);
+        
+        const url = `/api/food-prices/${encodeURIComponent(searchTerm)}?${queryParams.toString()}`;
+        
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Backend request failed: ${response.status}`);
+        }
+        
+        const filteredResults = await response.json();
+        
+        if (filteredResults.length === 0) {
+            showError(`No food prices found for "${searchTerm}" in the selected regions.`);
+        } else {
+            displayResults(filteredResults, searchTerm);
+        }
+    } catch (error) {
+        console.error('Backend proxy error:', error);
+        showError('Failed to fetch food prices. Please try again later.');
     }
 }
 
-// get food data from World Bank API + FAO
+// get FAO food data for african countries
+async function getFAOFoodData(countryCode, searchTerm) {
+    try {
+        const url = `/api/fao-prices?country=${encodeURIComponent(countryCode)}&commodity=${encodeURIComponent(searchTerm)}`;
+        
+        const response = await fetch(url);
+        if (response.ok) {
+            const data = await response.json();
+            if (data && data.price) {
+                return {
+                    price: data.price,
+                    currency: data.currency || 'USD'
+                };
+            }
+        }
+    } catch (error) {
+        console.log('FAO proxy error:', error);
+    }
+}
+
+// get food data from backend proxy
 async function getWorldBankFoodData(searchTerm) {
     const countries = [
         // north america
         { code: 'US', name: 'United States', currency: 'USD', continent: 'north-america' },
         { code: 'CA', name: 'Canada', currency: 'CAD', continent: 'north-america' },
-        
         // europe
         { code: 'GB', name: 'United Kingdom', currency: 'GBP', continent: 'europe' },
         { code: 'FR', name: 'France', currency: 'EUR', continent: 'europe' },
         { code: 'DE', name: 'Germany', currency: 'EUR', continent: 'europe' },
-        
         // asia
         { code: 'JP', name: 'Japan', currency: 'JPY', continent: 'asia' },
         { code: 'SG', name: 'Singapore', currency: 'SGD', continent: 'asia' },
         { code: 'IN', name: 'India', currency: 'INR', continent: 'asia' },
-        
         // africa
         { code: 'ZA', name: 'South Africa', currency: 'ZAR', continent: 'africa' },
         { code: 'NG', name: 'Nigeria', currency: 'NGN', continent: 'africa' },
@@ -61,7 +83,6 @@ async function getWorldBankFoodData(searchTerm) {
         { code: 'KE', name: 'Kenya', currency: 'KES', continent: 'africa' },
         { code: 'GH', name: 'Ghana', currency: 'GHS', continent: 'africa' },
         { code: 'ET', name: 'Ethiopia', currency: 'ETB', continent: 'africa' },
-        
         // oceania
         { code: 'AU', name: 'Australia', currency: 'AUD', continent: 'oceania' }
     ];
@@ -73,7 +94,7 @@ async function getWorldBankFoodData(searchTerm) {
             let price = null;
             let source = '';
             
-            //  FAO first for african countries
+            // FAO first for african countries
             if (country.continent === 'africa') {
                 try {
                     const faoData = await getFAOFoodData(country.code, searchTerm);
@@ -82,21 +103,21 @@ async function getWorldBankFoodData(searchTerm) {
                         source = 'FAO';
                     }
                 } catch (error) {
-                    console.log(`FAO failed for ${country.name}:`, error);
+                    console.log(`FAO proxy failed for ${country.name}:`, error);
                 }
             }
             
             // fallback to World Bank if FAO failed or not african
             if (!price) {
                 const indicator = 'FP.CPI.TOTL'; // Consumer Price Index
-                const url = `${API_CONFIG.WORLD_BANK_API}/${country.code}/indicator/${indicator}?format=json&per_page=1`;
+                const url = `/api/world-bank/${country.code}/indicator/${indicator}`;
                 
                 const response = await fetch(url);
                 if (response.ok) {
                     const data = await response.json();
                     
-                    if (data[1] && data[1][0] && data[1][0].value) {
-                        const priceIndex = data[1][0].value;
+                    if (data && data.value) {
+                        const priceIndex = data.value;
                         // convert index to realistic price
                         const basePrice = getBasePrice(searchTerm);
                         price = (basePrice * priceIndex / 100).toFixed(2);
@@ -121,35 +142,6 @@ async function getWorldBankFoodData(searchTerm) {
     }
     
     return results;
-}
-
-
-
-
-// get FAO food data for african countries
-async function getFAOFoodData(countryCode, searchTerm) {
-    try {
-        // FAO API endpoint for food prices
-        const url = `${API_CONFIG.FAO_API}/prices?country=${countryCode}&commodity=${searchTerm}&format=json`;
-        
-        const response = await fetch(url);
-        if (response.ok) {
-            const data = await response.json();
-            
-            // extract price from FAO data
-            if (data.data && data.data.length > 0) {
-                const latestPrice = data.data[0];
-                return {
-                    price: latestPrice.price,
-                    currency: latestPrice.currency || 'USD'
-                };
-            }
-        }
-    } catch (error) {
-        console.log('FAO API error:', error);
-    }
-    
-   
 }
 
 function showLoading() {
@@ -224,64 +216,34 @@ async function sendMessage() {
     addMessage('Thinking...', 'ai', loadingId);
     
     try {
-        // Use real Gemini API
-        const response = await callGeminiAPI(message);
-        
-        // Remove loading message and add actual response
-        document.getElementById(loadingId).remove();
-        addMessage(response, 'ai');
-    } catch (error) {
-        console.error('Chat error:', error);
-        document.getElementById(loadingId).remove();
-        const fallbackResponse = getIntelligentResponse(message);
-        addMessage(fallbackResponse, 'ai');
-    }
-}
-  
-    // Default responses for general questions
-    const generalResponses = [
-        "That's an interesting food question! I'm not sure I can answer that, but I can help you find food prices in different countries."
-    ];
-    
-    return generalResponses[Math.floor(Math.random() * generalResponses.length)];
-
-
-// gemini api call
-async function callGeminiAPI(message) {
-    try {
-        const apiKey = await getApiKey('GEMINI_API_KEY');
-        if (!apiKey) {
-            throw new Error('gemini key missing');
-        }
-        
-        const apiUrl = `${API_CONFIG.GEMINI_API_URL}?key=${apiKey}`;
-        
-        const requestBody = {
-            contents: [{
-                parts: [{
-                    text: `You are a helpful food assistant. Answer questions about food, nutrition, cooking, and food prices. Keep responses concise and friendly. User question: ${message}`
-                }]
-            }]
-        };
-        
-        const response = await fetch(apiUrl, {
+        // Use backend proxy for Gemini API
+        const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify({ message })
         });
         
         if (!response.ok) {
-            throw new Error(`Gemini API request failed: ${response.status}`);
+            throw new Error(`Chat proxy request failed: ${response.status}`);
         }
         
         const data = await response.json();
-        return data.candidates[0].content.parts[0].text;
+        let aiResponse = data.response;
         
+        if (!aiResponse && data.fallback) {
+            aiResponse = data.fallback;
+        }
+        
+        // Remove loading message and add actual response
+        document.getElementById(loadingId).remove();
+        addMessage(aiResponse, 'ai');
     } catch (error) {
-        console.error('Gemini API error:', error);
-        throw error; // Let the calling function handle the fallback
+        console.error('Chat proxy error:', error);
+        document.getElementById(loadingId).remove();
+        const fallbackResponse = getIntelligentResponse(message);
+        addMessage(fallbackResponse, 'ai');
     }
 }
 
@@ -319,11 +281,30 @@ function isDevelopment() {
     return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 }
 
-
-// API config 
+// API config (only used for reference, actual API calls handled by backend)
 const API_CONFIG = {
-    GEMINI_API_URL: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent',
-    WORLD_BANK_API: 'https://api.worldbank.org/v2/country',
-    FAO_API: 'https://api.fao.org/food-prices/v1',
-    FOOD_PRICES_API_URL: 'https://world-food-prices-api.rapidapi.com/search' // backup
+    GEMINI_API_URL: '/api/chat',
+    WORLD_BANK_API: '/api/world-bank',
+    FAO_API: '/api/fao-prices',
+    FOOD_PRICES_API_URL: '/api/food-prices'
 };
+
+// Placeholder for getBasePrice
+function getBasePrice(searchTerm) {
+    // Simple mapping for base prices
+    const basePrices = {
+        milk: 1.0,
+        rice: 0.8,
+        bread: 1.2
+        // Add more items as needed
+    };
+    return basePrices[searchTerm.toLowerCase()] || 1.0; // Default base price
+}
+
+// Placeholder for getIntelligentResponse
+function getIntelligentResponse(message) {
+    const generalResponses = [
+        "That's an interesting food question! I'm not sure I can answer that, but I can help you find food prices in different countries."
+    ];
+    return generalResponses[Math.floor(Math.random() * generalResponses.length)];
+}
